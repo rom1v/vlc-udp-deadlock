@@ -1,0 +1,69 @@
+Demo Android project for reproducing the UDP deadlock which should be fixed by
+this patch:
+https://mailman.videolan.org/pipermail/vlc-devel/2014-May/098020.html
+
+## Build vlc-udp-deadlock
+
+    cp local.properties{.sample,}
+    editor local.properties                     # change your SDK location
+    ant clean debug                             # generate bin/*-debug.apk
+    adb install bin/vlc-udp-deadlock-debug.apk  # install on device
+
+You can also import it into Eclipse (or your favorite IDE).
+
+## Infos
+
+The 'master' branch contains the libvlc compiled from:
+  commit ebcc69cfb1569a0fcedf10498606b231ae6fcb7c
+  (git://git.videolan.org/vlc.git)
+
+The 'deadlockfix' branch contains the very same version + the patch:
+https://mailman.videolan.org/pipermail/vlc-devel/2014-May/098020.html
+
+For simplicity, I commited the compiled '.so' files, but you can regenerate
+them by yourself: https://wiki.videolan.org/AndroidCompile/
+
+## Tests
+
+### Stream a video
+
+Connect your android device and your computer on the same LAN.
+
+Be aware that some Android devices don't support multicast:
+https://code.google.com/p/android/issues/detail?id=51195
+
+Then stream any file using vlc on your computer:
+
+    cvlc file.mkv ':sout=#udp{dst=239.0.0.1:1234}'
+
+### Check for deadlocks
+
+Start the vlc-udp-deadlock app, it will automatically connect to
+239.0.0.1:1234 (hardcoded).
+
+There are 3 buttons you can play with to make the deadlock happen:
+ - Play
+ - Stop
+ - Play+Stop
+
+A deadlock will freeze the interface (the button stays pressed on unpressed,
+and you can't click on them anymore). It may also make your device reboot after
+several seconds.
+
+You can also notice it in the logs. Enable the debug mode in your Android
+device preferences, and plug the device on your computer (e.g. by USB). You
+should be able to display the logs:
+
+    adb logcat
+
+A deadlock happens if you see "before stop()" without the corresponding "after
+stop()" or "before play()" without the corresponding "after play()".
+
+### Expected behavior
+
+On the 'master' branch (without the patch), you should be able to produce a
+deadlock quite easily (brute-force the buttons, "Play+Stop" should be more
+agressive).
+
+On the 'deadlockfix' branch (with the patch), if your device support multicast
+(you can play the video), you should not be able to reproduce any deadlock.
